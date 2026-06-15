@@ -66,8 +66,7 @@
     return jsPsych.data.get().filter({ task_type:"data_save" }).last(1).values()[0] || {};
   }
   function saveSucceeded() {
-    const save = latestSaveTrial();
-    return save.success === true && save.result?.message === "Success";
+    return latestSaveTrial().success === true;
   }
   function downloadBackup() {
     const blob = new Blob([compactDataCsv()], { type:"text/csv;charset=utf-8" });
