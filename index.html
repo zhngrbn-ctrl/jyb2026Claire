@@ -59,6 +59,32 @@
   function safe(value) {
     return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   }
+  function compactDataCsv() {
+    return jsPsych.data.get().select([
+      "subject_id", "version", "sample", "experiment_id",
+      "trial_type", "trial_index", "time_elapsed", "rt", "task_type",
+      "block", "item_order", "item_id", "item_type", "rating_1_7", "attention_pass",
+      "age_group", "native_chinese", "region", "gender", "total_duration_seconds"
+    ]).csv();
+  }
+  function latestSaveTrial() {
+    return jsPsych.data.get().filter({ task_type:"data_save" }).last(1).values()[0] || {};
+  }
+  function saveSucceeded() {
+    const save = latestSaveTrial();
+    return save.success === true && save.result?.message === "Success";
+  }
+  function downloadBackup() {
+    const blob = new Blob([compactDataCsv()], { type:"text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `BACKUP_${filename}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function blockIntro(block, endpoint) {
     const extra = block === "情境中表达自然度"
       ? `<br>每题会给出一个事件情境和一个把字句。请判断其中<span style="color:#1e40af;font-weight:700">蓝色动结表达</span>在该把字句和情境中是否自然。`
@@ -219,12 +245,43 @@
       action: "save",
       experiment_id: DATA_PIPE_EXPERIMENT_ID,
       filename,
-      data_string: () => jsPsych.data.get().csv()
+      data_string: compactDataCsv,
+      wait_message: "<p>正在提交数据，请勿关闭页面。</p>",
+      data: { task_type:"data_save", save_attempt:1 }
     });
     timeline.push({
-      type: jsPsychHtmlButtonResponse,
-      stimulus: `<h3>预测试完成</h3><p style="font-size:18px;color:#15803d;font-weight:600">数据已提交。感谢您的参与！</p><p class="muted">现在可以关闭浏览器窗口。</p>`,
-      choices: []
+      timeline: [{
+        type: jsPsychPipe,
+        action: "save",
+        experiment_id: DATA_PIPE_EXPERIMENT_ID,
+        filename,
+        data_string: compactDataCsv,
+        wait_message: "<p>首次提交未成功，正在再次尝试，请勿关闭页面。</p>",
+        data: { task_type:"data_save", save_attempt:2 }
+      }],
+      conditional_function: () => !saveSucceeded()
+    });
+    timeline.push({
+      timeline: [{
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `<h3>预测试完成</h3><p style="font-size:18px;color:#15803d;font-weight:600">数据已成功提交。感谢您的参与！</p><p class="muted">现在可以关闭浏览器窗口。</p>`,
+        choices: []
+      }],
+      conditional_function: saveSucceeded
+    });
+    timeline.push({
+      timeline: [{
+        type: jsPsychHtmlButtonResponse,
+        stimulus: () => {
+          const save = latestSaveTrial();
+          const error = save.result?.error || "UNKNOWN_SAVE_ERROR";
+          const message = save.result?.message || "数据未能上传。";
+          return `<h3>数据提交失败</h3><div class="warning"><strong>请不要关闭本页面。</strong><br>系统已尝试保存两次，但均未成功。备份文件将自动下载，请将其发送给主试。<br><span class="muted">错误：${safe(error)}；${safe(message)}</span></div><button class="jspsych-btn" onclick="downloadBackup()">再次下载备份数据</button>`;
+        },
+        choices: [],
+        on_load: downloadBackup
+      }],
+      conditional_function: () => !saveSucceeded()
     });
     jsPsych.run(timeline);
   }
