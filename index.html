@@ -60,12 +60,7 @@
     return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   }
   function compactDataCsv() {
-    return jsPsych.data.get().select([
-      "subject_id", "version", "sample", "experiment_id",
-      "trial_type", "trial_index", "time_elapsed", "rt", "task_type",
-      "block", "item_order", "item_id", "item_type", "rating_1_7", "attention_pass",
-      "age_group", "native_chinese", "region", "gender", "total_duration_seconds"
-    ]).csv();
+    return jsPsych.data.get().csv();
   }
   function latestSaveTrial() {
     return jsPsych.data.get().filter({ task_type:"data_save" }).last(1).values()[0] || {};
