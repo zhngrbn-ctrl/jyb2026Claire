@@ -61,7 +61,7 @@
   }
   function blockIntro(block, endpoint) {
     const extra = block === "情境中表达自然度"
-      ? `<br>每题会给出一个情境和一个句子。请仅判断句中<span style="color:#1e40af;font-weight:700">加粗蓝色</span>部分的表达在该情境中是否自然，整句仅供理解参考。`
+      ? `<br>每题会给出一个事件情境和一个把字句。请判断其中<span style="color:#1e40af;font-weight:700">蓝色动结表达</span>在该把字句和情境中是否自然。`
       : "";
     return {
       type: jsPsychHtmlButtonResponse,
@@ -120,7 +120,7 @@
     let displayStimulus = safe(item["目标句或V-R表达"]);
     if (item["区块"] === "情境中表达自然度") {
       const sent = item["目标句或V-R表达"];
-      const mVR = sent.match(/^(他把.+?)(\S{2})了。$/);
+      const mVR = sent.match(/^(他把.+?)(\S{2})了。$/) || sent.match(/^(.+?)(\S{2})了。$/);
       if (mVR) {
         displayStimulus = `${safe(mVR[1])}<span style="color:#1e40af;font-weight:700">${safe(mVR[2])}</span>了。`;
       }
